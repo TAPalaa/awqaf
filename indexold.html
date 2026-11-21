@@ -1,0 +1,362 @@
+﻿<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>منصة إدارة برامج الثانويات الشرعية - وزارة الأوقاف</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Cairo -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <!-- SheetJS لقراءة معالجة ملفات الإكسل أوتوماتيكياً -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            dark: '#1b3b2b',     // أخضر زيتي غامق
+                            emerald: '#2d5a40',  
+                            accent: '#3e7554',   
+                            gold: '#d4af37',     // لمسات ذهبية
+                            bg: '#f4f6f5'        
+                        }
+                    },
+                    fontFamily: {
+                        cairo: ['Cairo', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Cairo', sans-serif; background-color: #f4f6f5; }
+        .pattern-bg {
+            background-color: #1b3b2b;
+            background-image: radial-gradient(#d4af37 0.75px, transparent 0.75px), radial-gradient(#d4af37 0.75px, #1b3b2b 0.75px);
+            background-size: 30px 30px;
+        }
+        .hero-card { background: linear-gradient(135deg, #1b3b2b 0%, #2d5a40 100%); }
+        @media print { .no-print { display: none !important; } }
+    </style>
+</head>
+<body class="text-gray-800 pb-28">
+
+    <!-- 1. الشريط العلوي (Header) -->
+    <header class="pattern-bg text-white shadow-lg sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap justify-between items-center gap-4">
+            <div class="flex items-center gap-3">
+                <div class="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center border border-yellow-500/30 text-brand-gold text-2xl font-bold">
+                    <i class="fa-solid fa-mosque"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg leading-tight">منصة إدارة برامج الثانويات الشرعية</h1>
+                    <p class="text-xs text-emerald-200">وزارة الأوقاف - دائرة التعليم الشرعي</p>
+                </div>
+            </div>
+
+            <!-- شريط البحث السريع -->
+            <div class="flex-1 max-w-md mx-2">
+                <div class="relative">
+                    <input type="text" id="quickSearch" onkeyup="handleQuickSearch()" placeholder="ابحث عن مدرس، ثانوية، أو مادة..." class="w-full py-2 pr-10 pl-4 rounded-full text-sm text-gray-800 bg-white/95 focus:outline-none focus:ring-2 focus:ring-brand-gold shadow-inner">
+                    <div class="absolute right-3 top-2.5 text-gray-400">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- معلومات حساب الموجه -->
+            <div class="flex items-center gap-3">
+                <div class="flex items-center gap-2 bg-white/10 px-3 py-1.5 rounded-full border border-white/10">
+                    <div class="w-8 h-8 rounded-full bg-brand-gold text-brand-dark flex items-center justify-center font-bold text-sm">ع</div>
+                    <span class="text-sm font-semibold hidden md:inline">عبد الله شيخ حسين</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- المحتوى الرئيسي -->
+    <main class="max-w-7xl mx-auto px-4 pt-6 space-y-6">
+
+        <!-- 2. محرك رفع الملفات الذكي والفرز -->
+        <div class="hero-card text-white rounded-2xl p-6 shadow-xl relative overflow-hidden">
+            <div class="relative z-10 max-w-4xl space-y-4">
+                <div class="flex flex-wrap justify-between items-center gap-2">
+                    <span class="bg-brand-gold/20 text-brand-gold border border-brand-gold/30 text-xs px-3 py-1 rounded-full font-semibold">محرك الفرز ورفع البرامج الأوتوماتيكي</span>
+                    
+                    <!-- أزرار رفع Excel وقالب التنزيل -->
+                    <div class="flex gap-2">
+                        <button onclick="downloadTemplate()" class="bg-white/10 hover:bg-white/20 text-white text-xs px-3 py-2 rounded-lg font-bold transition flex items-center gap-1.5 border border-white/20">
+                            <i class="fa-solid fa-download text-brand-gold"></i> تحميل قالب إكسل القياسي
+                        </button>
+                        <label class="cursor-pointer bg-brand-gold hover:bg-yellow-500 text-brand-dark text-xs px-4 py-2 rounded-lg font-bold transition flex items-center gap-1.5 shadow">
+                            <i class="fa-solid fa-file-excel"></i> رفع برنامج ثانوية (Excel)
+                            <input type="file" id="excelFileInput" accept=".xlsx, .xls, .csv" class="hidden" onchange="handleFileUpload(event)">
+                        </label>
+                    </div>
+                </div>
+
+                <h2 class="text-2xl md:text-3xl font-extrabold">تحديد الثانويات المتاحة للزيارة الميدانية</h2>
+                <p class="text-sm text-emerald-100 leading-relaxed">اختر مادتك واليوم والمحافظة، أو قم برفع ملف الإكسل الخاص بالبرنامج ليتم تحليله واستخراج الحصص أوتوماتيكياً.</p>
+
+                <!-- أداة الفرز السريع -->
+                <div class="bg-white/10 backdrop-blur-md p-4 rounded-xl grid grid-cols-1 md:grid-cols-4 gap-3 border border-white/15">
+                    <div>
+                        <label class="block text-xs font-semibold mb-1 text-emerald-200">المادة الاختصاصية</label>
+                        <select id="filterSubject" class="w-full bg-white text-gray-800 text-sm rounded-lg p-2 focus:ring-2 focus:ring-brand-gold">
+                            <option value="الكل">كل المواد</option>
+                            <option value="رياضيات">الرياضيات</option>
+                            <option value="فقه إسلامي">الفقه الإسلامي</option>
+                            <option value="لغة عربية">اللغة العربية</option>
+                            <option value="فيزياء">الفيزياء والكيمياء</option>
+                            <option value="قرآن كريم">القرآن الكريم وتجويده</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold mb-1 text-emerald-200">يوم الزيارة</label>
+                        <select id="filterDay" class="w-full bg-white text-gray-800 text-sm rounded-lg p-2 focus:ring-2 focus:ring-brand-gold">
+                            <option value="الأحد">الأحد</option>
+                            <option value="الإثنين">الإثنين</option>
+                            <option value="الثلاثاء" selected>الثلاثاء (اليوم)</option>
+                            <option value="الأربعاء">الأربعاء</option>
+                            <option value="الخميس">الخميس</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold mb-1 text-emerald-200">المحافظة / القطاع</label>
+                        <select id="filterGov" class="w-full bg-white text-gray-800 text-sm rounded-lg p-2 focus:ring-2 focus:ring-brand-gold">
+                            <option value="الكل">جميع المحافظات</option>
+                            <option value="دمشق">دمشق</option>
+                            <option value="ريف دمشق">ريف دمشق</option>
+                            <option value="حلب">حلب</option>
+                            <option value="حمص">حمص</option>
+                        </select>
+                    </div>
+                    <div class="flex items-end">
+                        <button onclick="applyFilters()" class="w-full bg-brand-gold hover:bg-yellow-500 text-brand-dark font-bold text-sm py-2 px-4 rounded-lg transition flex items-center justify-center gap-2 shadow">
+                            <i class="fa-solid fa-filter"></i> تطبيق الفرز
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. كروت الإحصائيات -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-3">
+                <div class="w-12 h-12 rounded-xl bg-emerald-50 text-brand-emerald flex items-center justify-center text-xl"><i class="fa-solid fa-school"></i></div>
+                <div>
+                    <span class="text-xs text-gray-500 font-semibold block">المدارس المتاحة</span>
+                    <span id="statSchools" class="text-xl font-bold text-gray-800">0 ثانوية</span>
+                </div>
+            </div>
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-3">
+                <div class="w-12 h-12 rounded-xl bg-yellow-50 text-yellow-600 flex items-center justify-center text-xl"><i class="fa-solid fa-chalkboard-user"></i></div>
+                <div>
+                    <span class="text-xs text-gray-500 font-semibold block">المدرسون المتواجدون</span>
+                    <span id="statTeachers" class="text-xl font-bold text-gray-800">0 مدرس</span>
+                </div>
+            </div>
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-3">
+                <div class="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl"><i class="fa-solid fa-clock"></i></div>
+                <div>
+                    <span class="text-xs text-gray-500 font-semibold block">إجمالي الحصص اليوم</span>
+                    <span id="statPeriods" class="text-xl font-bold text-gray-800">0 حصة</span>
+                </div>
+            </div>
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-3">
+                <div class="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center text-xl"><i class="fa-solid fa-database"></i></div>
+                <div>
+                    <span class="text-xs text-gray-500 font-semibold block">إجمالي السجلات بالمطبخ</span>
+                    <span id="statTotal" class="text-xl font-bold text-gray-800">0 سجل</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. عرض النتائج وجدول الزيارات -->
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-4">
+            <div class="flex flex-wrap justify-between items-center gap-2">
+                <div>
+                    <h3 class="text-lg font-bold text-gray-800 flex items-center gap-2">
+                        <i class="fa-solid fa-list-check text-brand-emerald"></i>
+                        جدول حصص المدرسين المفرزة أوتوماتيكياً
+                    </h3>
+                    <p class="text-xs text-gray-500">يتم التحديث فورياً عند رفع أي ملف جديد</p>
+                </div>
+                <button onclick="window.print()" class="no-print bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs px-3 py-2 rounded-lg font-bold transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-print"></i> طباعة خطة الجولة
+                </button>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-right text-sm">
+                    <thead>
+                        <tr class="bg-gray-50 text-gray-600 border-b border-gray-100">
+                            <th class="p-3 font-semibold">الثانوية الشرعية</th>
+                            <th class="p-3 font-semibold">المحافظة</th>
+                            <th class="p-3 font-semibold">اليوم</th>
+                            <th class="p-3 font-semibold">اسم المدرس</th>
+                            <th class="p-3 font-semibold">المادة</th>
+                            <th class="p-3 font-semibold">الصف والشعبة</th>
+                            <th class="p-3 font-semibold">الحصة / الوقت</th>
+                            <th class="p-3 font-semibold text-center no-print">الإجراء</th>
+                        </tr>
+                    </thead>
+                    <tbody id="visitsTableBody" class="divide-y divide-gray-100"></tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <!-- البرمجة والأتمتة (JavaScript) -->
+    <script>
+        // البيانات الافتراضية للبدء
+        let schedules = [
+            { id: 1, school: "ثانوية الغراء الشرعية", gov: "دمشق", day: "الثلاثاء", teacher: "أحمد الملا", subject: "رياضيات", grade: "الأول الثانوي - شعبة 1", period: "الحصة الثانية (08:45)" },
+            { id: 2, school: "ثانوية الفتح الإسلامي", gov: "دمشق", day: "الثلاثاء", teacher: "محمود النابلسي", subject: "رياضيات", grade: "الثالث الثانوي - شعبة 2", period: "الحصة الأولى (08:00)" },
+            { id: 3, school: "ثانوية دار الأمان الشرعية", gov: "دمشق", day: "الثلاثاء", teacher: "خالد الخطيب", subject: "فقه إسلامي", grade: "الثاني الثانوي - شعبة 1", period: "الحصة الثالثة (09:30)" },
+            { id: 4, school: "ثانوية العلوم الشرعية", gov: "ريف دمشق", day: "الثلاثاء", teacher: "سامر حمزة", subject: "رياضيات", grade: "الأول الثانوي - شعبة 3", period: "الحصة الرابعة (10:30)" }
+        ];
+
+        // 1. معالجة وتفريغ ملفات الإكسل أوتوماتيكياً
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                
+                // قراءة الورقة الأولى في الملف
+                const firstSheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheetName];
+                const jsonRows = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+
+                if (jsonRows.length === 0) {
+                    alert("الملف المرفوع فارغ!");
+                    return;
+                }
+
+                // تحويل صفوف الإكسل إلى الهيكل المطلوب للمنصة
+                let addedCount = 0;
+                jsonRows.forEach((row, index) => {
+                    // البحث المرن عن أسماء الأعمدة بغض النظر عن الاختلاف البسيط
+                    const school = row["المدرسة"] || row["الثانوية"] || row["اسم المدرسة"] || "ثانوية شرعية";
+                    const gov = row["المحافظة"] || row["القطاع"] || "دمشق";
+                    const day = row["اليوم"] || "الثلاثاء";
+                    const teacher = row["المدرس"] || row["اسم المدرس"] || row["المعلم"];
+                    const subject = row["المادة"] || row["المادة الدراسية"];
+                    const grade = row["الصف"] || row["الشعبة"] || row["الصف والشعبة"] || "الصف العاشر";
+                    const period = row["الحصة"] || row["التوقيت"] || "الحصة 1";
+
+                    if (teacher && subject) {
+                        schedules.unshift({
+                            id: Date.now() + index,
+                            school: school,
+                            gov: gov,
+                            day: day,
+                            teacher: teacher,
+                            subject: subject,
+                            grade: grade,
+                            period: period
+                        });
+                        addedCount++;
+                    }
+                });
+
+                alert(`تم بنجاح استخراج وقراءة (${addedCount}) حصة من ملف الإكسل وإدراجها في المنصة أوتوماتيكياً!`);
+                applyFilters();
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        // 2. إنشاء وتنزيل قالب Excel جاهز
+        function downloadTemplate() {
+            const templateData = [
+                { "المدرسة": "ثانوية الغراء الشرعية", "المحافظة": "دمشق", "اليوم": "الثلاثاء", "المدرس": "محمد علي", "المادة": "رياضيات", "الصف": "الأول الثانوي", "الحصة": "الحصة الأولى" },
+                { "المدرسة": "ثانوية الفتح الإسلامي", "المحافظة": "دمشق", "اليوم": "الثلاثاء", "المدرس": "عمر البغدادي", "المادة": "فقه إسلامي", "الصف": "الثاني الثانوي", "الحصة": "الحصة الثانية" }
+            ];
+
+            const ws = XLSX.utils.json_to_sheet(templateData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "جدول البرامج");
+            XLSX.writeFile(wb, "قالب_برنامج_الثانوية_الشرعية.xlsx");
+        }
+
+        // 3. عرض الفرز والجدول
+        function renderTable(data) {
+            const tbody = document.getElementById('visitsTableBody');
+            tbody.innerHTML = '';
+
+            if(data.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" class="text-center py-8 text-gray-400">لا توجد حصص تتطابق مع شروط البحث الحالية</td></tr>`;
+                updateStats(0, 0, 0);
+                return;
+            }
+
+            const uniqueSchools = new Set(data.map(d => d.school)).size;
+            const uniqueTeachers = new Set(data.map(d => d.teacher)).size;
+            updateStats(uniqueSchools, uniqueTeachers, data.length);
+
+            data.forEach(item => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-gray-50 transition";
+                tr.innerHTML = `
+                    <td class="p-3 font-bold text-brand-dark">${item.school}</td>
+                    <td class="p-3 text-gray-600"><span class="bg-gray-100 text-xs px-2 py-1 rounded">${item.gov}</span></td>
+                    <td class="p-3 font-semibold text-gray-700">${item.day}</td>
+                    <td class="p-3 font-semibold text-gray-800">${item.teacher}</td>
+                    <td class="p-3"><span class="bg-emerald-50 text-brand-emerald text-xs font-bold px-2.5 py-1 rounded-full">${item.subject}</span></td>
+                    <td class="p-3 text-gray-600">${item.grade}</td>
+                    <td class="p-3 text-yellow-700 font-semibold"><i class="fa-regular fa-clock ml-1"></i> ${item.period}</td>
+                    <td class="p-3 text-center no-print">
+                        <button onclick="alert('تم تسجيل الملاحظة للزيارة')" class="bg-brand-dark hover:bg-brand-emerald text-white text-xs px-3 py-1.5 rounded-lg transition font-semibold">
+                            تأكيد الزيارة
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function updateStats(schools, teachers, periods) {
+            document.getElementById('statSchools').innerText = `${schools} ثانويات`;
+            document.getElementById('statTeachers').innerText = `${teachers} مدرسين`;
+            document.getElementById('statPeriods').innerText = `${periods} حصة`;
+            document.getElementById('statTotal').innerText = `${schedules.length} سجل`;
+        }
+
+        function applyFilters() {
+            const subject = document.getElementById('filterSubject').value;
+            const day = document.getElementById('filterDay').value;
+            const gov = document.getElementById('filterGov').value;
+
+            const filtered = schedules.filter(s => {
+                const matchSubject = (subject === 'الكل' || s.subject === subject);
+                const matchDay = (s.day === day);
+                const matchGov = (gov === 'الكل' || s.gov === gov);
+                return matchSubject && matchDay && matchGov;
+            });
+
+            renderTable(filtered);
+        }
+
+        function handleQuickSearch() {
+            const query = document.getElementById('quickSearch').value.toLowerCase();
+            const filtered = schedules.filter(s => 
+                s.teacher.toLowerCase().includes(query) ||
+                s.school.toLowerCase().includes(query) ||
+                s.subject.toLowerCase().includes(query)
+            );
+            renderTable(filtered);
+        }
+
+        window.onload = () => { applyFilters(); };
+    <https://jjsorteccryiotalwtdq.supabase.co/rest/v1//script>
+</body>
+</html>

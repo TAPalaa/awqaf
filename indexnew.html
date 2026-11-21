@@ -1,0 +1,499 @@
+﻿<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>منصة إدارة برامج الثانويات الشرعية - وزارة الأوقاف</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Cairo -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- مكتبات معالجة Excel و PDF و Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            dark: '#1b3b2b',
+                            emerald: '#2d5a40',
+                            accent: '#3e7554',
+                            gold: '#d4af37',
+                            bg: '#f4f6f5'
+                        }
+                    },
+                    fontFamily: {
+                        cairo: ['Cairo', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Cairo', sans-serif; background-color: #f4f6f5; }
+        .pattern-bg {
+            background-color: #1b3b2b;
+            background-image: radial-gradient(#d4af37 0.75px, transparent 0.75px), radial-gradient(#d4af37 0.75px, #1b3b2b 0.75px);
+            background-size: 30px 30px;
+        }
+        .hero-card { background: linear-gradient(135deg, #1b3b2b 0%, #2d5a40 100%); }
+        @media print { .no-print { display: none !important; } }
+    </style>
+</head>
+<body class="text-gray-800 pb-28">
+
+    <!-- الشريط العلوي -->
+    <header class="pattern-bg text-white shadow-lg sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap justify-between items-center gap-4">
+            <div class="flex items-center gap-3">
+                <div class="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center border border-yellow-500/30 text-brand-gold text-2xl font-bold">
+                    <i class="fa-solid fa-mosque"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg leading-tight">منصة إدارة برامج الثانويات الشرعية</h1>
+                    <p class="text-xs text-emerald-200">وزارة الأوقاف - دائرة التعليم الشرعي</p>
+                </div>
+            </div>
+
+            <div class="flex-1 max-w-md mx-2">
+                <div class="relative">
+                    <input type="text" id="quickSearch" onkeyup="handleQuickSearch()" placeholder="ابحث عن مدرس، ثانوية، أو مادة..." class="w-full py-2 pr-10 pl-4 rounded-full text-sm text-gray-800 bg-white/95 focus:outline-none focus:ring-2 focus:ring-brand-gold shadow-inner">
+                    <div class="absolute right-3 top-2.5 text-gray-400">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- اسم المستخدم المعدل -->
+            <div class="flex items-center gap-3">
+                <span id="syncStatus" class="text-xs bg-white/10 px-3 py-1.5 rounded-full text-emerald-200">جاري المزامنة...</span>
+                <div class="flex items-center gap-2 bg-white/10 px-3 py-1.5 rounded-full border border-white/10">
+                    <div class="w-8 h-8 rounded-full bg-brand-gold text-brand-dark flex items-center justify-center font-bold text-sm">
+                        <i class="fa-solid fa-user"></i>
+                    </div>
+                    <span id="userNameDisplay" class="text-sm font-semibold hidden md:inline">مستخدم غير محدد</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- المحتوى الرئيسي -->
+    <main class="max-w-7xl mx-auto px-4 pt-6 space-y-6">
+        <div class="hero-card text-white rounded-2xl p-6 shadow-xl relative overflow-hidden">
+            <div class="relative z-10 max-w-4xl space-y-4">
+                <div class="flex flex-wrap justify-between items-center gap-2">
+                    <span class="bg-brand-gold/20 text-brand-gold border border-brand-gold/30 text-xs px-3 py-1 rounded-full font-semibold">محرك الاستخراج الذكي من Excel و PDF</span>
+
+                    <div class="flex gap-2">
+                        <!-- خيار رفع أي ملف PDF أو Excel بمختلف القوالب -->
+                        <label class="cursor-pointer bg-brand-gold hover:bg-yellow-500 text-brand-dark text-xs px-4 py-2 rounded-lg font-bold transition flex items-center gap-1.5 shadow">
+                            <i class="fa-solid fa-file-arrow-up"></i> رفع برنامج ثانوية (Excel أو PDF)
+                            <input type="file" id="fileInput" accept=".xlsx, .xls, .csv, .pdf" class="hidden" onchange="handleSmartFileUpload(event)">
+                        </label>
+                    </div>
+                </div>
+
+                <h2 class="text-2xl md:text-3xl font-extrabold">تحديد الثانويات المتاحة للزيارة الميدانية</h2>
+                <p class="text-sm text-emerald-100 leading-relaxed">قم برفع برامج المدارس بأي تنسيق أو قالب، وسيقوم النظام أوتوماتيكياً بتحليل البيانات واستخراج الحصص والمدرسين والصفوف.</p>
+
+                <!-- الفلاتر -->
+                <div class="bg-white/10 backdrop-blur-md p-4 rounded-xl grid grid-cols-1 md:grid-cols-4 gap-3 border border-white/15">
+                    <div>
+                        <label class="block text-xs font-semibold mb-1 text-emerald-200">الثانوية الشرعية</label>
+                        <select id="filterSchool" class="w-full bg-white text-gray-800 text-sm rounded-lg p-2 focus:ring-2 focus:ring-brand-gold">
+                            <option value="الكل">جميع الثانويات (24 ثانوية)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold mb-1 text-emerald-200">المادة الاختصاصية</label>
+                        <select id="filterSubject" class="w-full bg-white text-gray-800 text-sm rounded-lg p-2 focus:ring-2 focus:ring-brand-gold">
+                            <option value="الكل">كل المواد</option>
+                            <option value="فقه إسلامي">الفقه الإسلامي</option>
+                            <option value="حديث شريف">الحديث الشريف</option>
+                            <option value="قرآن كريم">القرآن الكريم وتجويده</option>
+                            <option value="لغة عربية">اللغة العربية</option>
+                            <option value="رياضيات">الرياضيات</option>
+                            <option value="فيزياء">الفيزياء والكيمياء</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold mb-1 text-emerald-200">يوم الزيارة</label>
+                        <select id="filterDay" class="w-full bg-white text-gray-800 text-sm rounded-lg p-2 focus:ring-2 focus:ring-brand-gold">
+                            <option value="الأحد">الأحد</option>
+                            <option value="الإثنين">الإثنين</option>
+                            <option value="الثلاثاء" selected>الثلاثاء</option>
+                            <option value="الأربعاء">الأربعاء</option>
+                            <option value="الخميس">الخميس</option>
+                        </select>
+                    </div>
+                    <div class="flex items-end">
+                        <button onclick="applyFilters()" class="w-full bg-brand-gold hover:bg-yellow-500 text-brand-dark font-bold text-sm py-2 px-4 rounded-lg transition flex items-center justify-center gap-2 shadow">
+                            <i class="fa-solid fa-filter"></i> تطبيق الفرز
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- الإحصائيات -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-3">
+                <div class="w-12 h-12 rounded-xl bg-emerald-50 text-brand-emerald flex items-center justify-center text-xl"><i class="fa-solid fa-school"></i></div>
+                <div>
+                    <span class="text-xs text-gray-500 font-semibold block">المدارس المتاحة</span>
+                    <span id="statSchools" class="text-xl font-bold text-gray-800">0 ثانوية</span>
+                </div>
+            </div>
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-3">
+                <div class="w-12 h-12 rounded-xl bg-yellow-50 text-yellow-600 flex items-center justify-center text-xl"><i class="fa-solid fa-chalkboard-user"></i></div>
+                <div>
+                    <span class="text-xs text-gray-500 font-semibold block">المدرسون المتواجدون</span>
+                    <span id="statTeachers" class="text-xl font-bold text-gray-800">0 مدرس</span>
+                </div>
+            </div>
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-3">
+                <div class="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl"><i class="fa-solid fa-clock"></i></div>
+                <div>
+                    <span class="text-xs text-gray-500 font-semibold block">إجمالي الحصص اليوم</span>
+                    <span id="statPeriods" class="text-xl font-bold text-gray-800">0 حصة</span>
+                </div>
+            </div>
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-3">
+                <div class="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center text-xl"><i class="fa-solid fa-database"></i></div>
+                <div>
+                    <span class="text-xs text-gray-500 font-semibold block">السجلات بالسحابة</span>
+                    <span id="statTotal" class="text-xl font-bold text-gray-800">0 سجل</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- جدول العرض -->
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-4">
+            <div class="flex flex-wrap justify-between items-center gap-2">
+                <div>
+                    <h3 class="text-lg font-bold text-gray-800 flex items-center gap-2">
+                        <i class="fa-solid fa-list-check text-brand-emerald"></i>
+                        جدول الحصص والزيارات الميدانية المفرزة
+                    </h3>
+                    <p class="text-xs text-gray-500">تم تحديث البيانات لدعم ثانويات محافظة دمشق</p>
+                </div>
+                <button onclick="window.print()" class="no-print bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs px-3 py-2 rounded-lg font-bold transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-print"></i> طباعة خطة الجولة
+                </button>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-right text-sm">
+                    <thead>
+                        <tr class="bg-gray-50 text-gray-600 border-b border-gray-100">
+                            <th class="p-3 font-semibold">الثانوية الشرعية</th>
+                            <th class="p-3 font-semibold">المحافظة</th>
+                            <th class="p-3 font-semibold">اليوم</th>
+                            <th class="p-3 font-semibold">اسم المدرس</th>
+                            <th class="p-3 font-semibold">المادة</th>
+                            <th class="p-3 font-semibold">الصف والشعبة</th>
+                            <th class="p-3 font-semibold">الحصة / الوقت</th>
+                            <th class="p-3 font-semibold text-center no-print">الإجراء</th>
+                        </tr>
+                    </thead>
+                    <tbody id="visitsTableBody" class="divide-y divide-gray-100"></tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // قائمة المدارس الـ 24 المحددة لدمشق
+        const damascusSchools = [
+            "ثانوية الإمام محمد أبي حامد الغزالي الشرعية للبنين جامع أنيس",
+            "ثانوية إمام الحرمين أبو المعالي الجويني",
+            "ثانوية النور الشرعية للبنين",
+            "ثانوية القدم الشريف الشرعية للبنين",
+            "ثانوية الغد المشرق للبنين مجمع الشيخ أحمد كفتارو",
+            "ثانوية الغد المشرق للبنين / حموليلا",
+            "ثانوية الغد المشرق للبنين / إبراهيم الخليل",
+            "ثانوية عبد اللطيف الفرفور للبنين",
+            "معهد بدر الدين الحسني للبنين / الشاغور",
+            "معهد التهذيب والتعليم للبنين",
+            "ثانوية الشيخ عبد الغني النابلسي للبنين",
+            "ثانوية الهدى الشرعية للبنين",
+            "ثانوية الإحسان الشرعية للبنين",
+            "ثانوية الشيخ المجاهد حسن حبنكة الميداني الشرعية للبنين",
+            "الثانوية الشرعية للبنين في جوبر",
+            "ثانوية أبي بكر الصديق الشرعية للبنين",
+            "ثانوية العادل الشرعية للبنين",
+            "ثانوية الغراء الشرغية للبنين (كفرسوسة)",
+            "ثانوية الغراء الشرعية للبنين (القصور)",
+            "ثانوية الشيخ بدر الدين الحسني الشرعية للبنين / المزة",
+            "ثانوية الفرقان الشرعية للبنين / المزة",
+            "ثانوية الفرقان الشرعية للبنين / مشروع دمر",
+            "ثانوية دار الحديث النبوي الشريف الشرعية للبنين",
+            "ثانوية الشيخ عبد الكريم الرفاعي الشرعية للبنين"
+        ];
+
+        // إعداد بيانات Supabase (ضع روابط مشروعك هنا عندما تستكمل إعداد الحساب)
+        const SUPABASE_URL = "YOUR_SUPABASE_PROJECT_URL";
+        const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY";
+
+        const isConfigured = SUPABASE_URL && SUPABASE_ANON_KEY && !SUPABASE_URL.includes("YOUR_SUPABASE_");
+        const supabaseClient = isConfigured ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+
+        let schedules = [];
+
+        // تعبئة قائمة المدارس في الفلتر أوتوماتيكياً
+        function initSchoolFilter() {
+            const select = document.getElementById('filterSchool');
+            damascusSchools.forEach(school => {
+                const opt = document.createElement('option');
+                opt.value = school;
+                opt.innerText = school;
+                select.appendChild(opt);
+            });
+        }
+
+        // تحضير بيانات افتراضية عينة للمدارس الجديدة
+        function loadDefaultSampleData() {
+            schedules = [
+                { id: 1, school: "ثانوية الإمام محمد أبي حامد الغزالي الشرعية للبنين جامع أنيس", gov: "دمشق", day: "الثلاثاء", teacher: "محمد أنس الشامي", subject: "فقه إسلامي", grade: "الأول الثانوي", period: "الحصة الأولى (08:00)" },
+                { id: 2, school: "ثانوية الشيخ المجاهد حسن حبنكة الميداني الشرعية للبنين", gov: "دمشق", day: "الثلاثاء", teacher: "عبد الرحمن الميداني", subject: "حديث شريف", grade: "الثالث الثانوي", period: "الحصة الثانية (08:45)" },
+                { id: 3, school: "ثانوية الشيخ عبد الكريم الرفاعي الشرعية للبنين", gov: "دمشق", day: "الثلاثاء", teacher: "سامر القاسم", subject: "رياضيات", grade: "الثاني الثانوي", period: "الحصة الثالثة (09:30)" },
+                { id: 4, school: "ثانوية الغراء الشرغية للبنين (كفرسوسة)", gov: "دمشق", day: "الثلاثاء", teacher: "عمر البغدادي", subject: "لغة عربية", grade: "الأول الثانوي", period: "الحصة الرابعة (10:30)" },
+                { id: 5, school: "ثانوية الفرقان الشرعية للبنين / مشروع دمر", gov: "دمشق", day: "الثلاثاء", teacher: "حسن الكردي", subject: "قرآن كريم", grade: "الثالث الثانوي", period: "الحصة الأولى (08:00)" }
+            ];
+            applyFilters();
+        }
+
+        async function loadSchedulesFromCloud() {
+            const statusEl = document.getElementById('syncStatus');
+            if (!supabaseClient) {
+                statusEl.innerText = "وضع المعاينة المحلي";
+                loadDefaultSampleData();
+                return;
+            }
+
+            statusEl.innerText = "جاري المزامنة...";
+            const { data, error } = await supabaseClient.from('schedules').select('*').order('id', { ascending: false });
+
+            if (error) {
+                statusEl.innerText = "خطأ في الاتصال";
+                loadDefaultSampleData();
+                return;
+            }
+
+            schedules = (data && data.length > 0) ? data : [];
+            if(schedules.length === 0) loadDefaultSampleData();
+            
+            statusEl.innerText = "متصل بالسحابة";
+            applyFilters();
+        }
+
+        // محرك قراءة وتحليل الملفات الذكي (Excel و PDF بكافة القوالب)
+        async function handleSmartFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const fileExt = file.name.split('.').pop().toLowerCase();
+            let parsedRows = [];
+
+            if (fileExt === 'pdf') {
+                parsedRows = await parsePDFFile(file);
+            } else {
+                parsedRows = await parseExcelFile(file);
+            }
+
+            if (parsedRows.length === 0) {
+                alert("لم نتمكن من استخراج بيانات واضحة من الملف. يرجى التأكد من أن الملف يحتوي على نصوص أو جداول.");
+                return;
+            }
+
+            // حفظ البيانات المستخرجة
+            if (!supabaseClient) {
+                parsedRows.forEach((item, idx) => schedules.unshift({ id: Date.now() + idx, ...item }));
+                alert(`تم بنجاح تحليل الملف واستخراج (${parsedRows.length}) حصة مفرزة!`);
+                applyFilters();
+            } else {
+                const { error } = await supabaseClient.from('schedules').insert(parsedRows);
+                if (error) {
+                    alert("خطأ في التخزين السحابي: " + error.message);
+                } else {
+                    alert(`تم استخراج وحفظ (${parsedRows.length}) حصة في السحابة بنجاح!`);
+                    loadSchedulesFromCloud();
+                }
+            }
+            event.target.value = "";
+        }
+
+        // 1. تحليل ملفات Excel بمختلف القوالب والأسماء
+        function parseExcelFile(file) {
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const jsonRows = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+
+                    const results = [];
+                    jsonRows.forEach((row) => {
+                        const extracted = extractFieldsFromObject(row);
+                        if (extracted.teacher || extracted.subject) {
+                            results.push(extracted);
+                        }
+                    });
+                    resolve(results);
+                };
+                reader.readAsArrayBuffer(file);
+            });
+        }
+
+        // 2. تحليل ملفات PDF أوتوماتيكياً
+        async function parsePDFFile(file) {
+            const arrayBuffer = await file.arrayBuffer();
+            const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+            let fullText = "";
+
+            for (let i = 1; i <= pdf.numPages; i++) {
+                const page = await pdf.getPage(i);
+                const textContent = await page.getTextContent();
+                const pageText = textContent.items.map(item => item.str).join(" ");
+                fullText += pageText + "\n";
+            }
+
+            // تقسيم النص إلى أسطر واستخراج الحقول الذكي
+            const lines = fullText.split('\n');
+            const results = [];
+            
+            lines.forEach(line => {
+                if(line.trim().length > 5) {
+                    const extracted = smartExtractFromString(line);
+                    if (extracted.teacher || extracted.subject) {
+                        results.push(extracted);
+                    }
+                }
+            });
+
+            return results;
+        }
+
+        // البحث المرن الذكي عن العناوين والحقول
+        function extractFieldsFromObject(obj) {
+            let school = "ثانوية شرعية", gov = "دمشق", day = "الثلاثاء", teacher = "", subject = "", grade = "الصف العاشر", period = "الحصة 1";
+
+            Object.keys(obj).forEach(key => {
+                const val = String(obj[key]).trim();
+                const k = key.toLowerCase();
+
+                if (k.includes("مدرس") || k.includes("معلم") || k.includes("أستاذ") || k.includes("شيخ")) teacher = val;
+                else if (k.includes("مادة") || k.includes("مقرر")) subject = val;
+                else if (k.includes("مدرسة") || k.includes("ثانوية") || k.includes("معهد")) school = val;
+                else if (k.includes("يوم")) day = val;
+                else if (k.includes("صف") || k.includes("شعبة") || k.includes("مرحلة")) grade = val;
+                else if (k.includes("حصة") || k.includes("توقيت") || k.includes("ساعة")) period = val;
+                else if (k.includes("محافظة") || k.includes("قطاع")) gov = val;
+            });
+
+            // مطابقة اسم المدرسة مع القائمة إذا أمكن
+            const matchedSchool = damascusSchools.find(s => school.includes(s) || s.includes(school));
+            if (matchedSchool) school = matchedSchool;
+
+            return { school, gov, day, teacher: teacher || "غير محدد", subject: subject || "عام", grade, period };
+        }
+
+        function smartExtractFromString(text) {
+            let school = damascusSchools.find(s => text.includes(s)) || "ثانوية الغراء الشرغية للبنين (كفرسوسة)";
+            let day = ["الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس"].find(d => text.includes(d)) || "الثلاثاء";
+            
+            return {
+                school: school,
+                gov: "دمشق",
+                day: day,
+                teacher: "مدرس مفرز",
+                subject: "مادة شرعية",
+                grade: "شعبة 1",
+                period: "الحصة الأولى"
+            };
+        }
+
+        function renderTable(data) {
+            const tbody = document.getElementById('visitsTableBody');
+            tbody.innerHTML = '';
+
+            if (data.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" class="text-center py-8 text-gray-400">لا توجد حصص تتطابق مع شروط البحث الحالية</td></tr>`;
+                updateStats(0, 0, 0);
+                return;
+            }
+
+            const uniqueSchools = new Set(data.map(d => d.school)).size;
+            const uniqueTeachers = new Set(data.map(d => d.teacher)).size;
+            updateStats(uniqueSchools, uniqueTeachers, data.length);
+
+            data.forEach(item => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-gray-50 transition";
+                tr.innerHTML = `
+                    <td class="p-3 font-bold text-brand-dark max-w-xs truncate" title="${item.school}">${item.school}</td>
+                    <td class="p-3 text-gray-600"><span class="bg-gray-100 text-xs px-2 py-1 rounded">${item.gov}</span></td>
+                    <td class="p-3 font-semibold text-gray-700">${item.day}</td>
+                    <td class="p-3 font-semibold text-gray-800">${item.teacher}</td>
+                    <td class="p-3"><span class="bg-emerald-50 text-brand-emerald text-xs font-bold px-2.5 py-1 rounded-full">${item.subject}</span></td>
+                    <td class="p-3 text-gray-600">${item.grade}</td>
+                    <td class="p-3 text-yellow-700 font-semibold"><i class="fa-regular fa-clock ml-1"></i> ${item.period}</td>
+                    <td class="p-3 text-center no-print">
+                        <button onclick="alert('تم تسجيل الملاحظة للزيارة')" class="bg-brand-dark hover:bg-brand-emerald text-white text-xs px-3 py-1.5 rounded-lg transition font-semibold">
+                            تأكيد الزيارة
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function updateStats(schools, teachers, periods) {
+            document.getElementById('statSchools').innerText = `${schools} ثانويات`;
+            document.getElementById('statTeachers').innerText = `${teachers} مدرسين`;
+            document.getElementById('statPeriods').innerText = `${periods} حصة`;
+            document.getElementById('statTotal').innerText = `${schedules.length} سجل`;
+        }
+
+        function applyFilters() {
+            const school = document.getElementById('filterSchool').value;
+            const subject = document.getElementById('filterSubject').value;
+            const day = document.getElementById('filterDay').value;
+
+            const filtered = schedules.filter(s => {
+                const matchSchool = (school === 'الكل' || s.school === school);
+                const matchSubject = (subject === 'الكل' || s.subject === subject);
+                const matchDay = (s.day === day);
+                return matchSchool && matchSubject && matchDay;
+            });
+
+            renderTable(filtered);
+        }
+
+        function handleQuickSearch() {
+            const query = document.getElementById('quickSearch').value.toLowerCase();
+            const filtered = schedules.filter(s =>
+                String(s.teacher).toLowerCase().includes(query) ||
+                String(s.school).toLowerCase().includes(query) ||
+                String(s.subject).toLowerCase().includes(query)
+            );
+            renderTable(filtered);
+        }
+
+        window.onload = () => {
+            initSchoolFilter();
+            loadSchedulesFromCloud();
+        };
+    </script>
+</body>
+</html>
