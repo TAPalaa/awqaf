@@ -98,10 +98,14 @@ jobs:
 
       - name: Build Debug APK
         run: |
+          cat << 'EOF' >> android/app/build.gradle
+          dependencies {
+              implementation(platform("org.jetbrains.kotlin:kotlin-bom:1.8.22"))
+          }
+          EOF
           cd android
           chmod +x gradlew
           ./gradlew assembleDebug
-
       - name: Upload Android APK Artifact
         uses: actions/upload-artifact@v4
         with:
