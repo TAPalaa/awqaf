@@ -1,7 +1,7 @@
 /**
  * منطق الصفحة الرئيسية:
  * الفرز الفوري، الحسابات الاختيارية، تأكيد الزيارات الشخصية،
- * التعديل والحذف المباشر، وتصدير ملف المهام PDF ورسائل واتساب.
+ * التعديل والحذف المباشر، وتصدير ملف المهام PDF (طباعة أصلية بدون قصّ) ورسائل واتساب.
  */
 (function () {
   const CFG = window.AWQAF_CONFIG;
@@ -591,7 +591,7 @@
   };
 
   // --------------------------------------------------------------------------
-  // تصدير ملف المهام (PDF Checklist) + نسخ للواتساب
+  // تصدير ملف المهام (PDF Checklist طباعة أصلية) + نسخ للواتساب
   // --------------------------------------------------------------------------
   function groupFilteredBySchool() {
     const groups = {};
@@ -631,13 +631,13 @@
       }).join('');
 
       blocksHtml += `
-        <div class="pdf-school-block" style="margin-bottom:18px;">
-          <div style="background:#1b3b2b; color:#fff; padding:8px 12px; border-radius:6px 6px 0 0; font-weight:bold; font-size:13px; border-bottom:2px solid #d4af37;">
+        <div style="page-break-inside:avoid; margin-bottom:18px;">
+          <div style="background:#1b3b2b; color:#fff; padding:8px 12px; border-radius:6px 6px 0 0; font-weight:bold; font-size:13px; border-bottom:2px solid #d4af37; -webkit-print-color-adjust:exact; print-color-adjust:exact;">
             ${escapeHtml(schoolTitle)}
           </div>
           <table style="width:100%; border-collapse:collapse; font-size:11px;">
             <thead>
-              <tr style="background:#f3f4f6;">
+              <tr style="background:#f3f4f6; -webkit-print-color-adjust:exact; print-color-adjust:exact;">
                 <th style="border:1px solid #d1d5db; padding:6px; width:48px;">الإنجاز</th>
                 <th style="border:1px solid #d1d5db; padding:6px;">اليوم والحصة</th>
                 <th style="border:1px solid #d1d5db; padding:6px;">المادة</th>
@@ -652,45 +652,50 @@
       `;
     });
 
-    const container = document.getElementById('pdfRenderContainer');
-    container.innerHTML = `
-      <div class="pdf-checklist-sheet" style="padding:18px; width:760px;">
-        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:3px solid #d4af37; padding-bottom:12px; margin-bottom:18px;">
+    const printWin = window.open('', '_blank', 'width=850,height=900');
+    if (!printWin) {
+      showToast('يرجى السماح بالنوافذ المنبثقة لطباعة ملف المهام', true);
+      return;
+    }
+
+    printWin.document.write(`
+      <!DOCTYPE html>
+      <html lang="ar" dir="rtl">
+      <head>
+        <meta charset="UTF-8">
+        <title>مهام الزيارات الميدانية — وزارة الأوقاف</title>
+        <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;600;700&display=swap" rel="stylesheet">
+        <style>
+          body { font-family: 'IBM Plex Sans Arabic', sans-serif; padding: 20px; direction: rtl; color: #111827; }
+          @media print { body { padding: 0; } }
+        </style>
+      </head>
+      <body>
+        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:3px solid #d4af37; padding-bottom:10px; margin-bottom:16px;">
           <div>
-            <div style="font-size:16px; font-weight:bold; color:#1b3b2b;">وزارة الأوقاف — دائرة التعليم الشرعي</div>
-            <div style="font-size:13px; color:#2d5a40; margin-top:4px;">جدول مهام الزيارات الميدانية للثانويات الشرعية</div>
+            <div style="font-size:17px; font-weight:bold; color:#1b3b2b;">وزارة الأوقاف — دائرة التعليم الشرعي</div>
+            <div style="font-size:13px; color:#2d5a40;">جدول مهام الزيارات الميدانية للثانويات الشرعية</div>
           </div>
-          <div style="text-align:left; font-size:11px; color:#4b5563;">
+          <div style="text-align:left; font-size:12px;">
             <div><strong>الموجه:</strong> ${escapeHtml(supervisorName)}</div>
-            <div><strong>تاريخ الإصدار:</strong> ${escapeHtml(todayStr)}</div>
+            <div><strong>التاريخ:</strong> ${escapeHtml(todayStr)}</div>
             <div><strong>عدد الحصص:</strong> ${state.filtered.length}</div>
           </div>
         </div>
         ${blocksHtml}
-        <div style="margin-top:26px; display:flex; justify-content:space-between; font-size:12px; color:#374151; border-top:1px dashed #9ca3af; padding-top:12px;">
+        <div style="margin-top:24px; display:flex; justify-content:space-between; font-size:12px; border-top:1px dashed #999; padding-top:10px;">
           <div>توقيع الموجه الاختصاصي: ........................</div>
           <div>اعتماد دائرة التعليم الشرعي: ........................</div>
         </div>
-      </div>
-    `;
-    container.classList.remove('hidden');
-
-    const opt = {
-      margin: 8,
-      filename: `مهام_الزيارات_الميدانية_${new Date().toISOString().slice(0, 10)}.pdf`,
-      image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-    };
-
-    showToast('جاري تجهيز ملف المهام بصيغة PDF...');
-    html2pdf().set(opt).from(container.firstElementChild).save().then(() => {
-      container.classList.add('hidden');
-      container.innerHTML = '';
-    }).catch(() => {
-      container.classList.add('hidden');
-      showToast('تعذر إنشاء ملف PDF، يمكنك المحاولة مجدداً', true);
-    });
+        <script>
+          window.onload = function () {
+            setTimeout(function () { window.print(); }, 500);
+          };
+        <\/script>
+      </body>
+      </html>
+    `);
+    printWin.document.close();
   };
 
   window.copyTasksWhatsApp = async function () {
