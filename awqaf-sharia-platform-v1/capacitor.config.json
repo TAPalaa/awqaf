@@ -1,0 +1,8 @@
+{
+  "appId": "com.awqaf.sharia",
+  "appName": "Awqaf",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https"
+  }
+}

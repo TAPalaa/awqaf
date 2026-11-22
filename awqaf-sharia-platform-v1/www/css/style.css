@@ -1,0 +1,129 @@
+/* الهوية البصرية الرسمية — وزارة الأوقاف (دائرة التعليم الشرعي) */
+:root {
+  --brand-dark: #1b3b2b;
+  --brand-emerald: #2d5a40;
+  --brand-accent: #3e7554;
+  --brand-gold: #d4af37;
+  --brand-gold-soft: #f5ecd0;
+  --brand-bg: #f4f6f5;
+  --text-main: #1f2937;
+  --text-muted: #6b7280;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'IBM Plex Sans Arabic', sans-serif;
+  background-color: var(--brand-bg);
+  color: var(--text-main);
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* خلفية هندسية إسلامية هادئة للشريط العلوي */
+.awqaf-header-pattern {
+  background-color: var(--brand-dark);
+  background-image:
+    radial-gradient(rgba(212, 175, 55, 0.16) 1px, transparent 1px),
+    radial-gradient(rgba(212, 175, 55, 0.08) 1px, var(--brand-dark) 1px);
+  background-size: 28px 28px;
+  background-position: 0 0, 14px 14px;
+}
+
+/* أزرار وحالات الزيارة */
+.badge-done {
+  background-color: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+
+.badge-postponed {
+  background-color: #fffbeb;
+  color: #92400e;
+  border: 1px solid #fde68a;
+}
+
+.badge-absent {
+  background-color: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+.badge-pending {
+  background-color: #f3f4f6;
+  color: #4b5563;
+  border: 1px solid #e5e7eb;
+}
+
+/* نافذة منبثقة سلسة */
+.modal-backdrop {
+  background-color: rgba(15, 34, 24, 0.65);
+  backdrop-filter: blur(4px);
+  animation: fadeIn 0.2s ease-out;
+}
+
+.modal-card {
+  animation: slideUp 0.22s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(14px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* منطقة سحب وإفلات الملفات */
+.drop-zone {
+  border: 2px dashed #9ca3af;
+  transition: all 0.2s ease;
+}
+
+.drop-zone.dragover {
+  border-color: var(--brand-gold);
+  background-color: #fdfbf3;
+}
+
+/* شريط التمرير المخصص */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #e5e7eb;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #9ca3af;
+  border-radius: 6px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--brand-emerald);
+}
+
+/* تنسيق خاص بطباعة ملف المهام PDF */
+.pdf-checklist-sheet {
+  font-family: 'IBM Plex Sans Arabic', sans-serif;
+  direction: rtl;
+  color: #111827;
+  background: #ffffff;
+}
+
+.pdf-school-block {
+  page-break-inside: avoid;
+  margin-bottom: 16px;
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+}

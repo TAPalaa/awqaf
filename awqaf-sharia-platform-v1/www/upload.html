@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>رفع برنامج ثانوية شرعية — وزارة الأوقاف</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+
+  <!-- مكتبات قراءة Excel و Word بصمت قبل الإرسال -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              dark: '#1b3b2b',
+              emerald: '#2d5a40',
+              accent: '#3e7554',
+              gold: '#d4af37',
+              bg: '#f4f6f5'
+            }
+          },
+          fontFamily: {
+            plex: ['IBM Plex Sans Arabic', 'sans-serif']
+          }
+        }
+      }
+    };
+  </script>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body class="bg-brand-bg min-h-screen flex flex-col">
+
+  <!-- الشريط العلوي -->
+  <header class="awqaf-header-pattern text-white shadow-lg border-b-2 border-brand-gold">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <div class="w-11 h-11 rounded-2xl bg-brand-gold/20 border border-brand-gold text-brand-gold flex items-center justify-center text-xl">
+          <i class="fa-solid fa-mosque"></i>
+        </div>
+        <div>
+          <h1 class="text-base sm:text-lg font-bold">بوابة رفع برامج الثانويات الشرعية</h1>
+          <p class="text-xs text-emerald-200">وزارة الأوقاف — دائرة التعليم الشرعي</p>
+        </div>
+      </div>
+
+      <a href="index.html" class="inline-flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white border border-white/20 text-xs sm:text-sm font-medium px-3.5 py-2 rounded-xl transition">
+        <i class="fa-solid fa-arrow-right text-brand-gold"></i>
+        <span>الصفحة الرئيسية</span>
+      </a>
+    </div>
+  </header>
+
+  <main class="max-w-3xl w-full mx-auto px-4 sm:px-6 py-8 flex-1">
+
+    <!-- بطاقة النموذج -->
+    <div id="uploadCard" class="bg-white rounded-3xl shadow-md border border-gray-100 border-t-4 border-t-brand-gold overflow-hidden">
+      <div class="p-6 sm:p-8 space-y-6">
+        <div class="space-y-1">
+          <h2 class="text-xl font-bold text-brand-dark">إضافة أو تحديث برنامج دوام مدرسة</h2>
+          <p class="text-xs sm:text-sm text-gray-500">
+            أدخل بيانات الثانوية وأرفق ملفات برنامج الحصص (ملف واحد أو عدة ملفات)، وسيتم تنظيمها وإدراجها تلقائياً في المنصة.
+          </p>
+        </div>
+
+        <form id="uploadForm" class="space-y-5">
+
+          <!-- 1. اسم المدرسة (قائمة ذكية + إدخال حر لمدرسة جديدة) -->
+          <div>
+            <label for="schoolInput" class="block text-xs sm:text-sm font-bold text-gray-700 mb-1.5">
+              اسم الثانوية الشرعية <span class="text-red-500">*</span>
+            </label>
+            <input
+              id="schoolInput"
+              list="existingSchoolsList"
+              type="text"
+              required
+              autocomplete="off"
+              placeholder="اختر مدرسة مسجلة مسبقاً أو اكتب اسم مدرسة جديدة..."
+              class="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-brand-emerald focus:ring-2 focus:ring-brand-emerald/15"
+            />
+            <datalist id="existingSchoolsList"></datalist>
+            <p class="text-[11px] text-gray-400 mt-1">عند اختيار مدرسة مسجلة سابقاً سيتم تعبئة المحافظة والنوع تلقائياً.</p>
+          </div>
+
+          <!-- 2. المحافظة (14 محافظة سورية حصراً) + 3. نوع المدرسة -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label for="govSelect" class="block text-xs sm:text-sm font-bold text-gray-700 mb-1.5">
+                المحافظة <span class="text-red-500">*</span>
+              </label>
+              <select
+                id="govSelect"
+                required
+                class="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl bg-white focus:outline-none focus:border-brand-emerald"
+              >
+                <option value="">-- اختر المحافظة --</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-xs sm:text-sm font-bold text-gray-700 mb-1.5">
+                نوع الثانوية <span class="text-red-500">*</span>
+              </label>
+              <div class="grid grid-cols-2 gap-2.5">
+                <label class="cursor-pointer">
+                  <input type="radio" name="schoolGender" value="ذكور" class="peer sr-only" checked />
+                  <div class="py-3 text-center rounded-xl border border-gray-200 text-sm font-bold text-gray-600 peer-checked:bg-emerald-50 peer-checked:border-brand-emerald peer-checked:text-brand-dark transition">
+                    <i class="fa-solid fa-user-tie ml-1.5"></i> ذكور
+                  </div>
+                </label>
+                <label class="cursor-pointer">
+                  <input type="radio" name="schoolGender" value="إناث" class="peer sr-only" />
+                  <div class="py-3 text-center rounded-xl border border-gray-200 text-sm font-bold text-gray-600 peer-checked:bg-pink-50 peer-checked:border-pink-500 peer-checked:text-pink-800 transition">
+                    <i class="fa-solid fa-user-graduate ml-1.5"></i> إناث
+                  </div>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- 4. رفع ملفات البرنامج (متعدد الصيغ) -->
+          <div>
+            <label class="block text-xs sm:text-sm font-bold text-gray-700 mb-1.5">
+              ملفات برنامج الحصص <span class="text-red-500">*</span>
+            </label>
+            <div id="dropZone" class="drop-zone rounded-2xl p-6 text-center cursor-pointer bg-gray-50/70 hover:bg-emerald-50/40">
+              <input
+                id="fileInput"
+                type="file"
+                multiple
+                accept=".pdf,.xlsx,.xls,.docx,.png,.jpg,.jpeg,.webp"
+                class="hidden"
+              />
+              <div class="w-14 h-14 rounded-2xl bg-brand-dark text-brand-gold mx-auto flex items-center justify-center text-2xl mb-3 shadow">
+                <i class="fa-solid fa-file-arrow-up"></i>
+              </div>
+              <p class="text-sm font-bold text-brand-dark">اضغط لاختيار الملفات أو اسحبها وأفلتها هنا</p>
+              <p class="text-xs text-gray-500 mt-1">يدعم ملفاً واحداً أو عدة ملفات معاً: PDF، Excel، Word، أو صور الجداول</p>
+            </div>
+
+            <!-- قائمة الملفات المختارة -->
+            <div id="filesList" class="mt-3 space-y-2"></div>
+          </div>
+
+          <!-- 5. خيار استبدال البرنامج القديم -->
+          <div class="bg-amber-50/70 border border-amber-200 rounded-2xl p-4 flex items-start gap-3">
+            <input id="replaceOldCheck" type="checkbox" checked class="mt-1 w-4 h-4 accent-brand-dark rounded cursor-pointer" />
+            <label for="replaceOldCheck" class="cursor-pointer">
+              <span class="block text-xs sm:text-sm font-bold text-brand-dark">استبدال برنامج المدرسة القديم بالكامل</span>
+              <span class="block text-xs text-gray-600 mt-0.5">يُنصح بإبقاء هذا الخيار مفعّلاً عند تحديث برنامج المدرسة لمنع تكرار الحصص القديمة.</span>
+            </label>
+          </div>
+
+          <!-- رسالة خطأ -->
+          <div id="uploadError" class="hidden text-xs sm:text-sm text-red-700 bg-red-50 border border-red-200 rounded-xl p-3.5"></div>
+
+          <!-- شريط التقدم الصامت -->
+          <div id="progressWrap" class="hidden bg-emerald-50 border border-emerald-200 rounded-2xl p-4 space-y-2.5">
+            <div class="flex items-center justify-between text-xs font-bold text-brand-dark">
+              <span id="progressLabel"><i class="fa-solid fa-circle-notch fa-spin ml-1.5 text-brand-emerald"></i>جاري تجهيز الملفات...</span>
+              <span id="progressPercent">15%</span>
+            </div>
+            <div class="w-full h-2.5 bg-emerald-100 rounded-full overflow-hidden">
+              <div id="progressBar" class="h-full bg-brand-dark rounded-full transition-all duration-300" style="width: 15%"></div>
+            </div>
+          </div>
+
+          <!-- زر الإرسال -->
+          <button id="submitUploadBtn" type="submit" class="w-full bg-brand-dark hover:bg-brand-emerald text-white font-bold py-3.5 rounded-2xl transition shadow-md text-sm sm:text-base flex items-center justify-center gap-2">
+            <i class="fa-solid fa-paper-plane text-brand-gold"></i>
+            <span>حفظ وإدراج البرنامج في المنصة</span>
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- شاشة النجاح -->
+    <div id="successCard" class="hidden bg-white rounded-3xl shadow-md border border-emerald-200 p-8 text-center space-y-5">
+      <div class="w-20 h-20 rounded-full bg-emerald-100 text-emerald-700 mx-auto flex items-center justify-center text-4xl">
+        <i class="fa-solid fa-circle-check"></i>
+      </div>
+      <div class="space-y-1">
+        <h2 class="text-2xl font-bold text-brand-dark">تم إدراج برنامج الثانوية بنجاح</h2>
+        <p id="successSummary" class="text-sm text-gray-600"></p>
+      </div>
+      <div class="flex flex-wrap items-center justify-center gap-3 pt-2">
+        <a id="viewSchoolBtn" href="index.html" class="inline-flex items-center gap-2 bg-brand-dark hover:bg-brand-emerald text-white font-bold text-sm px-6 py-3 rounded-xl transition shadow">
+          <i class="fa-solid fa-table-list text-brand-gold"></i>
+          <span>استعراض برنامج هذه المدرسة</span>
+        </a>
+        <button onclick="resetUploadPage()" class="inline-flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold text-sm px-6 py-3 rounded-xl transition">
+          <i class="fa-solid fa-plus"></i>
+          <span>رفع برنامج مدرسة أخرى</span>
+        </button>
+      </div>
+    </div>
+
+  </main>
+
+  <footer class="text-center text-xs text-gray-500 py-5 border-t border-gray-200 bg-white mt-auto">
+    وزارة الأوقاف — دائرة التعليم الشرعي • بوابة إدخال البرامج الدراسية
+  </footer>
+
+  <script src="js/config.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/upload.js"></script>
+</body>
+</html>
