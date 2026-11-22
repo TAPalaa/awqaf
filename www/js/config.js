@@ -11,7 +11,7 @@ window.AWQAF_CONFIG = {
   VERSION: '1.0.0',
 
   // الصق رابط Google Apps Script Web App هنا بعد النشر (مثال: https://script.google.com/macros/s/.../exec)
-  API_URL: '',
+  API_URL: 'https://script.google.com/macros/s/AKfycbxFhrQQUw1HueXSqV_iikdLqPg2FSafaj191xMFq_6z0vYrzfpoQXqlfydP2gp71E0D/exec',
 
   // المحافظات السورية الـ 14 المعتمدة حصراً
   GOVERNORATES: [
