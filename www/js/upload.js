@@ -1,11 +1,14 @@
 /**
  * منطق صفحة رفع برامج المدارس:
- * يدعم PDF متعدد الصفحات (صفحة بصفحة)، Excel، Word، الصور،
+ * يدعم PDF متعدد الصفحات (بدفعات ذكية لتوفير الحصة)، Excel، Word، الصور،
  * ودمج ملفين منفصلين (ملف مدرسين + ملف مواد) تلقائياً.
  */
 (function () {
   const CFG = window.AWQAF_CONFIG;
   const API = window.AwqafAPI;
+
+  const BATCH_SIZE = 2; // إرسال صفحتين بكل طلب لتقليل استهلاك الحصة للنصف
+  const BATCH_DELAY_MS = 2000; // استراحة ثانيتين بين الدفعات لتجنب حد الدقيقة (429)
 
   let selectedFiles = [];
   let knownSchools = [];
@@ -133,14 +136,14 @@
     for (let p = 1; p <= pdf.numPages; p++) {
       setProgress(Math.round((p / pdf.numPages) * 20), `جاري تجهيز صفحة PDF (${p} من ${pdf.numPages})...`);
       const page = await pdf.getPage(p);
-      const viewport = page.getViewport({ scale: 1.6 });
+      const viewport = page.getViewport({ scale: 1.4 });
       const canvas = document.createElement('canvas');
       canvas.width = viewport.width;
       canvas.height = viewport.height;
       const ctx = canvas.getContext('2d');
       await page.render({ canvasContext: ctx, viewport: viewport }).promise;
 
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
       const base64 = dataUrl.slice(dataUrl.indexOf(',') + 1);
       pages.push({
         name: `${file.name} - صفحة ${p}`,
@@ -194,6 +197,10 @@
     });
   }
 
+  function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
   async function handleUploadSubmit(e) {
     e.preventDefault();
     hideError();
@@ -215,39 +222,63 @@
       if (queue.length === 0) throw new Error('لم يتم العثور على صفحات صالحة للرفع.');
 
       let totalInserted = 0;
-      let failedPages = 0;
+      let failedBatches = 0;
+      let lastServerError = '';
 
-      // دمج ملفين منفصلين من صفحة واحدة (مثل ملف مدرسين + ملف مواد)
       const shouldMergeTwo = (selectedFiles.length === 2 && queue.length === 2);
 
       if (shouldMergeTwo) {
-        setProgress(60, 'جاري قراءة ودمج الملفين (المدرسين مع المواد)...');
+        setProgress(55, 'جاري قراءة ودمج الملفين (المدرسين مع المواد)...');
         const res = await API.uploadSchedules({
           school, gov, gender, replaceOld,
           files: queue
         });
-        if (res && res.ok) totalInserted += (res.insertedCount || 0);
+        if (res && res.ok) {
+          totalInserted += (res.insertedCount || 0);
+        } else {
+          lastServerError = (res && res.error) ? res.error : 'تعذر دمج الملفين.';
+        }
       } else {
-        for (let i = 0; i < queue.length; i++) {
-          const pct = 20 + Math.round(((i + 1) / queue.length) * 78);
-          setProgress(pct, `جاري قراءة وحفظ الصفحة ${i + 1} من ${queue.length}...`);
+        const batches = [];
+        for (let i = 0; i < queue.length; i += BATCH_SIZE) {
+          batches.push(queue.slice(i, i + BATCH_SIZE));
+        }
+
+        for (let b = 0; b < batches.length; b++) {
+          const fromPage = b * BATCH_SIZE + 1;
+          const toPage = Math.min((b + 1) * BATCH_SIZE, queue.length);
+          const pct = 20 + Math.round(((b + 1) / batches.length) * 76);
+          const label = fromPage === toPage
+            ? `جاري قراءة وحفظ الصفحة ${fromPage} من ${queue.length}...`
+            : `جاري قراءة وحفظ الصفحات ${fromPage}-${toPage} من ${queue.length}...`;
+
+          setProgress(pct, label);
 
           const res = await API.uploadSchedules({
             school, gov, gender,
-            replaceOld: (i === 0) ? replaceOld : false,
-            files: [queue[i]]
+            replaceOld: (b === 0) ? replaceOld : false,
+            files: batches[b]
           });
 
           if (res && res.ok) {
             totalInserted += (res.insertedCount || 0);
           } else {
-            failedPages++;
+            failedBatches++;
+            lastServerError = (res && res.error) ? res.error : 'فشلت قراءة هذه الدفعة.';
+            // إذا كان الخطأ متعلقاً بالحصة أو المفتاح، أوقف التكرار فوراً لتجنب إضاعة الوقت
+            if (/429|403|401|مفتاح|الحسابات/.test(lastServerError)) {
+              break;
+            }
+          }
+
+          if (b < batches.length - 1) {
+            await sleep(BATCH_DELAY_MS);
           }
         }
       }
 
       if (totalInserted === 0) {
-        throw new Error('لم نتمكن من استخراج حصص من الملفات المرفقة. تأكد من وضوح الجداول وحاول مجدداً.');
+        throw new Error(lastServerError || 'لم نتمكن من استخراج حصص من الملفات المرفقة. تأكد من وضوح الجداول وحاول مجدداً.');
       }
 
       setProgress(100, 'تم الحفظ بنجاح!');
@@ -255,7 +286,9 @@
       setTimeout(() => {
         els.uploadCard.classList.add('hidden');
         els.successCard.classList.remove('hidden');
-        const note = failedPages > 0 ? ` (تعذرت قراءة ${failedPages} صفحة)` : '';
+        const note = failedBatches > 0
+          ? ` (تعذرت قراءة ${failedBatches} دفعة: ${lastServerError})`
+          : '';
         els.successSummary.textContent =
           `تم إدراج ${totalInserted} حصة بنجاح لـ (${school} — ${gov} / ${gender})${note}.`;
         els.viewSchoolBtn.href = `index.html?school=${encodeURIComponent(school)}`;
