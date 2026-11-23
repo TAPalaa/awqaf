@@ -77,6 +77,22 @@
       els.filterDay.add(new Option(day, day));
       document.getElementById('editDay').add(new Option(day, day));
     });
+
+    // تعبئة قائمة المواد الثابتة في الفلتر + قائمة اقتراحات نافذة التعديل اليدوي
+    if (Array.isArray(CFG.SUBJECTS)) {
+      els.filterSubject.innerHTML = '<option value="">كل المواد</option>';
+      const dl = document.createElement('datalist');
+      dl.id = 'standardSubjectsList';
+      CFG.SUBJECTS.forEach(sub => {
+        els.filterSubject.add(new Option(sub, sub));
+        const opt = document.createElement('option');
+        opt.value = sub;
+        dl.appendChild(opt);
+      });
+      document.body.appendChild(dl);
+      const editSub = document.getElementById('editSubject');
+      if (editSub) editSub.setAttribute('list', 'standardSubjectsList');
+    }
   }
 
   function bindFilterEvents() {
@@ -149,7 +165,6 @@
     const selectedGov = els.filterGov.value;
     const selectedGender = els.filterGender.value;
     const prevSchool = els.filterSchool.value;
-    const prevSubject = els.filterSubject.value;
 
     const subset = state.schedules.filter(s =>
       (!selectedGov || s.gov === selectedGov) &&
@@ -157,15 +172,10 @@
     );
 
     const schools = [...new Set(subset.map(s => s.school).filter(Boolean))].sort();
-    const subjects = [...new Set(state.schedules.map(s => s.subject).filter(Boolean))].sort();
 
     els.filterSchool.innerHTML = '<option value="">كل الثانويات</option>';
     schools.forEach(sc => els.filterSchool.add(new Option(sc, sc)));
     if (schools.includes(prevSchool)) els.filterSchool.value = prevSchool;
-
-    els.filterSubject.innerHTML = '<option value="">كل المواد</option>';
-    subjects.forEach(sub => els.filterSubject.add(new Option(sub, sub)));
-    if (subjects.includes(prevSubject)) els.filterSubject.value = prevSubject;
   }
 
   // --------------------------------------------------------------------------
